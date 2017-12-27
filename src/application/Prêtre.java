@@ -4,7 +4,7 @@ import java.util.Random;
 
 public class Prêtre {
 	public static final String TYPE = "Prêtre";
-	int pv,att,def, crit, initiative,parade,sucessAtt,heal;
+	int pv,att,def, crit, initiative,parade,heal;
 	String nom;
 	
 	public Prêtre(String nom) {
@@ -12,10 +12,9 @@ public class Prêtre {
 		this.def = getRandom(60, 80);
 		this.heal = this.def/4;
 		this.pv = getRandom(70, 90);
-		this.crit = 0;
+		this.crit = getRandom(5, 7);
 		this.initiative = getRandom(50, 60);
-		this.parade = 0;
-		this.sucessAtt = 0;
+		this.parade = getRandom(30, 50);
 		this.nom = nom;
 	}
 	public int getRandom(int min, int max) {
@@ -58,12 +57,6 @@ public class Prêtre {
 	}
 	public void setParade(int parade) {
 		this.parade = parade;
-	}
-	public int getSucessAtt() {
-		return sucessAtt;
-	}
-	public void setSucessAtt(int sucessAtt) {
-		this.sucessAtt = sucessAtt;
 	}
 	public int getHeal() {
 		return heal;

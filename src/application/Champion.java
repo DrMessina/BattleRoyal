@@ -49,13 +49,13 @@ public class Champion {
 	}
 	public int getAtt() {
 		if(voleur != null) {
-			return voleur.getPv();
+			return voleur.getAtt();
 		}else if (mage != null) {
-			return mage.getPv();
+			return mage.getAtt();
 		}else if (guerrier != null) {
-			return guerrier.getPv();
+			return guerrier.getAtt();
 		}else if (prêtre != null) {
-			return prêtre.getPv();
+			return prêtre.getAtt();
 		}
 		return 0;
 	}
@@ -168,29 +168,6 @@ public class Champion {
 	}
 	public void setHeal(int heal) {
 		prêtre.setHeal(heal);
-	}
-	public int getSucessAtt() {
-		if(voleur != null) {
-			return voleur.getSucessAtt();
-		}else if (mage != null) {
-			return mage.getSucessAtt();
-		}else if (guerrier != null) {
-			return guerrier.getSucessAtt();
-		}else if (prêtre != null) {
-			return prêtre.getSucessAtt();
-		}
-		return 0;
-	}
-	public void setSucessAtt(int sucessAtt) {
-		if(voleur != null) {
-			voleur.setSucessAtt(sucessAtt);
-		}else if (mage != null) {
-			mage.setSucessAtt(sucessAtt);
-		}else if (guerrier != null) {
-			guerrier.setSucessAtt(sucessAtt);
-		}else if (prêtre != null) {
-			prêtre.setSucessAtt(sucessAtt);
-		}
 	}
 	public String getNom() {
 		if(voleur != null) {

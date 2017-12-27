@@ -7,20 +7,27 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.Menu?>
 	
 <BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="application.BattleRoyaleController">
 	<!-- TODO Add Nodes -->
 	<top>
+		<MenuBar >
+			<Menu text="Combat"><items>
+				<MenuItem text="nouveau combat" onAction="#fight"></MenuItem>
+				<MenuItem text="Quitter" onAction="#quitter"></MenuItem>
+			</items></Menu>	
+			<Menu text="Equipe"><items>
+				<MenuItem text="equipe A" onAction="#equipeA"></MenuItem>
+				<MenuItem text="equipe B" onAction="#equipeB"></MenuItem>
+			</items></Menu>				
+			<Menu text="Historique" onAction="#Historique"></Menu>		
+		</MenuBar>
 	</top>
-	<center>
-		<VBox >
-			<HBox >
-				<Label  fx:id="afficheur"/>
-			</HBox>	
-			<HBox >
-				<ListView fx:id="list"/>
-			</HBox>
-		</VBox>
+	<center >
+		<HBox fx:id="HBox"></HBox>
 	</center>
 	<bottom></bottom>
 </BorderPane>

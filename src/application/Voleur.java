@@ -4,17 +4,16 @@ import java.util.Random;
 
 public class Voleur {
 	public static final String TYPE = "Voleur";
-	int pv,att,def, crit, initiative,esquive,sucessAtt;
+	int pv,att,def, crit, initiative,esquive;
 	String nom;
 	
 	public Voleur(String nom) {
 		this.att = getRandom(40,60);
 		this.def = getRandom(30, 50);
 		this.pv = getRandom(70, 80);
-		this.crit = 0;
-		this.esquive = 0;
+		this.crit = getRandom(15, 20);
+		this.esquive = getRandom(40, 70);
 		this.initiative = getRandom(75, 90);
-		this.sucessAtt = 0;
 		this.nom = nom;
 	}	
 	public int getRandom(int min, int max) {
@@ -57,12 +56,6 @@ public class Voleur {
 	}
 	public void setEsquive(int parade) {
 		this.esquive = parade;
-	}
-	public int getSucessAtt() {
-		return sucessAtt;
-	}
-	public void setSucessAtt(int sucessAtt) {
-		this.sucessAtt = sucessAtt;
 	}
 	public String getNom() {
 		return nom;
