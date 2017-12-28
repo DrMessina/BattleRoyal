@@ -12,10 +12,14 @@ import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.Label;
+import javafx.scene.control.Labeled;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
+import javafx.scene.text.TextAlignment;
 
 public class BattleRoyaleController {	
 	@FXML
@@ -37,31 +41,328 @@ public class BattleRoyaleController {
 	private ArrayList<Boolean> percent = new ArrayList<>();
 	private ArrayList<ScheduledExecutorService> teamATimers = new ArrayList<>();
 	private ArrayList<ScheduledExecutorService> teamBTimers = new ArrayList<>();
-	private int nbUpTeamA=10;
-	private int nbUpTeamB=10;//check fonction if 0 stop all thread
 	private ScheduledExecutorService timer1;
 	
 	public void init() {
+		
+		
+		
+	}
+	public void createTeam(	ArrayList<Champion> team) {
+		ArrayList<String> t= new ArrayList<>();
+		t.add("Guerrier");
+		t.add("Voleur");
+		t.add("Mage");
+		t.add("Prêtre");
+		for(int i=0; i<10;i++) {
+			Collections.shuffle(t);
+			if(t.get(0)=="Guerrier") {
+				Guerrier g = new Guerrier("Guerrier"+i);
+				Champion c = new Champion(g);
+				team.add(c);
+				
+			}else if(t.get(0)=="Voleur") {
+				Voleur v = new Voleur("voleur"+i);
+				Champion c = new Champion(v);
+				team.add(c);
+				
+			}else if(t.get(0)=="Mage") {
+				Mage m = new Mage("Mage"+i);
+				Champion c = new Champion(m);
+				team.add(c);
+				
+			}else if(t.get(0)=="Prêtre") {
+				Prêtre p = new Prêtre("Prêtre"+i);
+				Champion c = new Champion(p);
+				team.add(c);
+				
+			}else {
+				System.out.println("erreur de creation de champion!");
+			}
+			
+		}
+	}
+	public void setListViewWidth(Number newSceneWidth) {
+		list.setPrefWidth(newSceneWidth.intValue());
+		list1.setPrefWidth(newSceneWidth.intValue()/2);
+		list2.setPrefWidth(newSceneWidth.intValue()/2);
+	}
+	public int getRandomInt(int max) {
+		Random intgenerator = new Random();
+		int intgenerated = intgenerator.nextInt(max);
+		return intgenerated;
+	}
+	public void attack(Champion attacker,Champion attacked, ArrayList<Champion> toHeal) {
+		
+		if(attacked.getType() == "Guerrier" || attacked.getType() == "Prêtre") {
+			if(parade(attacked) == true)
+			{
+				try {
+					data.add(attacked.getNom() + " ne reçoit pas de degats.");
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}else {
+				if(criticalHit(attacker)==true) 
+				{
+					int pvOfAttacked = attacked.getPv();
+					pvOfAttacked = pvOfAttacked - attacker.getAtt();
+					attacked.setPv(pvOfAttacked);
+					System.out.println("pv new value "+attacked.getPv());
+					data.add("Coup critique! " + attacker.getNom() + "inflige des degats perçants à " + attacked.getNom() +" d'une valeur de " + attacker.getAtt()+"." );
+					//add or remove in/from to heal  team table
+					if(attacked.getPv() > 0) {
+						int i;
+						if(toHeal.size()==0) {
+							toHeal.add(attacked);
+						}else {
+							for(i=0; i<toHeal.size() && toHeal.get(i) != attacked;i++) {}
+							if (i>=toHeal.size()) {	toHeal.add(attacked);}
+						}
+					}
+				}else{
+					int pvOfAttacked = attacked.getPv();
+					if(attacked.getDef() < attacker.getAtt()) 
+					{
+						int damage = attacker.getAtt() - attacked.getDef();
+						pvOfAttacked = pvOfAttacked-damage;
+						attacked.setPv(pvOfAttacked);
+						System.out.println("pv new value "+attacked.getPv());
+						try {
+							data.add(attacker.getNom()+" attaque avec "+attacker.getAtt()+" pt dattaque, "+attacked.getNom()+" qui a "+attacked.getDef()+" defense et "+attacked.getPv()+" pv : il reçoit donc "+damage+" degat.");
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						/*try {
+							if(!(toHeal.containsKey(attacked.getNom())) ) {	toHeal.put(attacked.getNom(), attacked);}
+						}catch (Exception e) {toHeal.put(attacked.getNom(), attacked);}*/
+						//add or remove in/from to heal  team table
+						if(attacked.getPv() > 0) {
+							int i;
+							if(toHeal.size()==0) {
+								toHeal.add(attacked);
+							}else {
+								for(i=0; i<toHeal.size() && toHeal.get(i) != attacked;i++) {}
+								if (i>=toHeal.size()) {	toHeal.add(attacked);}
+							}
+						}
+					}else{
+						data.add(attacked.getNom() + " ne reçoit pas de degats.");
+					}
+				}
+			}
+			
+		}else if(attacked.getType() == "Voleur") {
+			if(esquive(attacked) == true)
+			{
+				data.add(attacked.getNom() + " ne reçoit pas de degats.");
+			}else {
+				if(criticalHit(attacker)==true) 
+				{
+					int pvOfAttacked = attacked.getPv();
+					pvOfAttacked = pvOfAttacked - attacker.getAtt();
+					attacked.setPv(pvOfAttacked);
+					System.out.println("pv new value "+attacked.getPv());
+					data.add("Coup critique! " + attacker.getNom() + "inflige des degats perçants à " + attacked.getNom() +" d'une valeur de " + attacker.getAtt()+"." );
+					//add or remove in/from to heal  team table
+					if(attacked.getPv() > 0) {
+						int i;
+						if(toHeal.size()==0) {
+							toHeal.add(attacked);
+						}else {
+							for(i=0; i<toHeal.size() && toHeal.get(i) != attacked;i++) {}
+							if (i>=toHeal.size()) {	toHeal.add(attacked);}
+						}
+					}
+				}else{
+					int pvOfAttacked = attacked.getPv();
+					if(attacked.getDef() < attacker.getAtt()) 
+					{
+						int damage = attacker.getAtt() - attacked.getDef();
+						pvOfAttacked = pvOfAttacked-damage;
+						attacked.setPv(pvOfAttacked);
+						// change le msg pour qu'il soit plus parlant
+						data.add(attacker.getNom()+" attaque avec "+attacker.getAtt()+" pt dattaque, "+attacked.getNom()+" qui a "+attacked.getDef()+" defense et "+attacked.getPv()+" : il reçoit donc "+damage+" degat.");
+						System.out.println("pv new value "+attacked.getPv());
+						/*try {
+							if(!(toHeal.containsKey(attacked.getNom())) ) {	toHeal.put(attacked.getNom(), attacked);}
+						}catch (Exception e) {toHeal.put(attacked.getNom(), attacked);}*/
+						
+						//add or remove in/from to heal  team table
+						if(attacked.getPv() > 0) {
+							int i;
+							if(toHeal.size()==0) {
+								toHeal.add(attacked);
+							}else {
+								for(i=0; i<toHeal.size() && toHeal.get(i) != attacked;i++) {}
+								if (i>=toHeal.size()) {	toHeal.add(attacked);}
+							}
+						}
+					}else{
+						data.add(attacked.getNom() + " ne reçoit pas de degats.");
+					}
+				}
+			}			
+		}else if(attacked.getType() == "Mage") {
+			if(criticalHit(attacker)==true) 
+			{
+				int pvOfAttacked = attacked.getPv();
+				pvOfAttacked = pvOfAttacked - attacker.getAtt();
+				attacked.setPv(pvOfAttacked);
+				System.out.println("pv new value "+attacked.getPv());
+				data.add("Coup critique! " + attacker.getNom() + "inflige des degats perçants à " + attacked.getNom() +" d'une valeur de " + attacker.getAtt()+"." );
+				//add or remove in/from to heal  team table
+				if(attacked.getPv() > 0) {
+					int i;
+					if(toHeal.size()==0) {
+						toHeal.add(attacked);
+					}else {
+						for(i=0; i<toHeal.size() && toHeal.get(i) != attacked;i++) {}
+						if (i>=toHeal.size()) {	toHeal.add(attacked);}
+					}
+				}
+			}else{
+				int pvOfAttacked = attacked.getPv();
+				if(attacked.getDef() < attacker.getAtt()) 
+				{
+					int damage = attacker.getAtt() - attacked.getDef();
+					pvOfAttacked = pvOfAttacked-damage;
+					attacked.setPv(pvOfAttacked);
+					// change le msg pour qu'il soit plus parlant
+					data.add(attacker.getNom()+" attaque avec "+attacker.getAtt()+" pt dattaque, "+attacked.getNom()+" qui a "+attacked.getDef()+" defense et "+attacked.getPv()+" : il reçoit donc "+damage+" degat.");
+					System.out.println("pv new value "+attacked.getPv());
+					/*try {
+						if(!(toHeal.containsKey(attacked.getNom())) ) {	toHeal.put(attacked.getNom(), attacked);}
+					}catch (Exception e) {toHeal.put(attacked.getNom(), attacked);}*/
+					//add or remove in/from to heal  team table
+					if(attacked.getPv() > 0) {
+						int i;
+						if(toHeal.size()==0) {
+							toHeal.add(attacked);
+						}else {
+							for(i=0; i<toHeal.size() && toHeal.get(i) != attacked;i++) {}
+							if (i>=toHeal.size()) {	toHeal.add(attacked);}
+						}
+					}
+				}else{
+					data.add(attacked.getNom() + " ne reçoit pas de degats.");
+				}
+			}
+		}else{
+			System.out.println("error in champion type");
+		}
+	}
+	public void heal(Champion healer, ArrayList<Champion> ToHeal) {
+		ArrayList<String> indexToHeal = new ArrayList<>();
+		for (int i=0; i<ToHeal.size(); i++) {	if(ToHeal.get(i).getPv() > 0) {	indexToHeal.add(String.valueOf(i));	System.out.println("in :" +i);} }
+		
+		if (indexToHeal.size()>0) {
+			Collections.shuffle(indexToHeal);
+			ToHeal.get(Integer.parseInt(indexToHeal.get(0))).setPv(ToHeal.get(Integer.parseInt(indexToHeal.get(0))).getPv() + healer.getHeal());
+			data.add(healer.getNom() + " ajoute " + healer.getHeal() + " pv à " + ToHeal.get(Integer.parseInt(indexToHeal.get(0))).getPv() + " pv de "
+					+ ToHeal.get(Integer.parseInt(indexToHeal.get(0))).getNom() + " -> new pv value : " + ToHeal.get(Integer.parseInt(indexToHeal.get(0))).getPv());
+		}
+	}
+	public boolean criticalHit(Champion tryHarder) {
+		int percentToTest = tryHarder.getCrit();
+		for(int i=0; i<100; i++) {
+			if(i<percentToTest){
+				percent.add(true);
+			}else {
+				percent.add(false);
+			}
+		}
+		Collections.shuffle(percent);
+		Random intgenerator = new Random();
+		int toTest = intgenerator.nextInt(100);
+		Boolean toReturn = percent.get(toTest);
+		return toReturn;
+	}
+	public Boolean parade(Champion theTank) {
+		int percentToTest = theTank.getParade();
+		for(int i=0; i<100; i++) {
+			if(i<percentToTest){
+				percent.add(true);
+			}else {
+				percent.add(false);
+			}
+		}
+		Collections.shuffle(percent);
+		Random intgenerator = new Random();
+		int toTest = intgenerator.nextInt(100);
+		Boolean toReturn = percent.get(toTest);
+		return toReturn;
+	}
+	public Boolean esquive(Champion speedy) {
+		int percentToTest = speedy.getEsquive();
+		for(int i=0; i<100; i++) {
+			if(i<percentToTest){
+				percent.add(true);
+			}else {
+				percent.add(false);
+			}
+		}
+		Collections.shuffle(percent);
+		Random intgenerator = new Random();
+		int toTest = intgenerator.nextInt(100);
+		Boolean toReturn = percent.get(toTest);
+		return toReturn;
+	}
+	public void close() {
+		try {
+			System.out.println("start to stop threads");
+			if(teamATimers != null && teamATimers.size() > 0 && teamBTimers != null && teamBTimers.size() > 0) {
+				for(int i =0; i<teamATimers.size(); i++) {
+					teamATimers.get(i).shutdown();
+					teamATimers.get(i).awaitTermination(33, TimeUnit.MILLISECONDS);
+				}
+				for(int i =0; i<teamBTimers.size(); i++) {
+					teamBTimers.get(i).shutdown();
+					teamBTimers.get(i).awaitTermination(33, TimeUnit.MILLISECONDS);
+				}
+				timer1.shutdown();
+				timer1.awaitTermination(1, TimeUnit.SECONDS);
+			}
+			System.out.println("threads stopped");
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@FXML
+	public void fight() {
+		close();
+		HBox.getChildren().clear();
+		list = new ListView<>();
+		data.clear();
+		data = FXCollections.observableArrayList();
 		list.setItems(data);
 		list.setPrefWidth(850);
 		list.setMaxWidth(1366);
 		HBox.getChildren().add(list);
+		teamA.clear();
+		teamA = new ArrayList<>();
+		teamB.clear();
+		teamB = new ArrayList<>();
+		teamAToHeal.clear();
+		teamAToHeal = new ArrayList<>();
+		teamBToHeal.clear();
+		teamBToHeal = new ArrayList<>();
+		teamATimers.clear();
+		teamATimers = new ArrayList<>();
+		teamBTimers.clear();
+		teamBTimers = new ArrayList<>();
 		Random intgenerator = new Random();
 		/**	
 		 * create first team
 		 */
 		createTeam(teamA);
-		for(int i=0; i<10; i++) {
-			data.add(teamA.get(i).getNom() + " TeamA");
-		}
 		/**
 		 * create second team
 		 */
 		createTeam(teamB);
-		for(int i=0; i<10; i++) {
-			data.add(teamB.get(i).getNom() + " TeamB");
-		}
-		 
 		/**
 		 * creation des threads
 		 */
@@ -650,7 +951,6 @@ public class BattleRoyaleController {
 									Collections.shuffle(toAttack);
 									attack(teamB.get(7), teamA.get(Integer.parseInt(toAttack.get(0))), teamAToHeal);
 								} else {
-
 									heal(teamB.get(7), teamBToHeal);
 								}
 							} else {
@@ -823,32 +1123,7 @@ public class BattleRoyaleController {
 		};
 		teamBTimers.add(timer);
 		this.teamBTimers.get(9).scheduleAtFixedRate(champion20, 0, 1000/teamB.get(9).getInitiative(), TimeUnit.MILLISECONDS);
-/*
-		Runnable check =new Runnable() {
-			public void run() {
-				try {
-					System.out.println(java.lang.Thread.activeCount() + "threads.");
-					for(int i=teamB.size()-1; i>=0; i--) {
-						if(teamB.get(i).getPv()<=0) {
-							teamBTimers.get(i).shutdown();
-							teamBTimers.get(i).awaitTermination(33, TimeUnit.MILLISECONDS);
-						}
-					}
-					for(int i=teamA.size()-1; i>0; i--) {
-						if(teamA.get(i).getPv()<=0) {
-							teamATimers.get(i).shutdown();
-							teamATimers.get(i).awaitTermination(33, TimeUnit.MILLISECONDS);
-						}
-					}
-					System.out.println(java.lang.Thread.activeCount() + "threads.");
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-		};
-		this.timer1 = Executors.newSingleThreadScheduledExecutor();
-		this.timer1.scheduleAtFixedRate(check, 0, 1, TimeUnit.SECONDS);*/
+
 		Runnable check =new Runnable() {
 			public void run() {
 				System.out.println(teamAToHeal.size() +" team a / "+ teamBToHeal.size()+" team b");
@@ -892,287 +1167,6 @@ public class BattleRoyaleController {
 		};
 		this.timer1 = Executors.newSingleThreadScheduledExecutor();
 		this.timer1.scheduleAtFixedRate(check, 0, 1, TimeUnit.SECONDS);
-		
-	}
-	public void createTeam(	ArrayList<Champion> team) {
-		ArrayList<String> t= new ArrayList<>();
-		t.add("Guerrier");
-		t.add("Voleur");
-		t.add("Mage");
-		t.add("Prêtre");
-		for(int i=0; i<10;i++) {
-			Collections.shuffle(t);
-			if(t.get(0)=="Guerrier") {
-				Guerrier g = new Guerrier("Guerrier"+i);
-				Champion c = new Champion(g);
-				team.add(c);
-				
-			}else if(t.get(0)=="Voleur") {
-				Voleur v = new Voleur("voleur"+i);
-				Champion c = new Champion(v);
-				team.add(c);
-				
-			}else if(t.get(0)=="Mage") {
-				Mage m = new Mage("Mage"+i);
-				Champion c = new Champion(m);
-				team.add(c);
-				
-			}else if(t.get(0)=="Prêtre") {
-				Prêtre p = new Prêtre("Prêtre"+i);
-				Champion c = new Champion(p);
-				team.add(c);
-				
-			}else {
-				System.out.println("erreur de creation de champion!");
-			}
-			
-		}
-	}
-	public void setListViewWidth(Number newSceneWidth) {
-		list.setPrefWidth(newSceneWidth.intValue());
-		list1.setPrefWidth(newSceneWidth.intValue()/2);
-		list2.setPrefWidth(newSceneWidth.intValue()/2);
-
-
-	}
-	public int getRandomInt(int max) {
-		Random intgenerator = new Random();
-		int intgenerated = intgenerator.nextInt(max);
-		return intgenerated;
-	}
-	public void attack(Champion attacker,Champion attacked, ArrayList<Champion> toHeal) {
-		
-		if(attacked.getType() == "Guerrier" || attacked.getType() == "Prêtre") {
-			if(parade(attacked) == true)
-			{
-				data.add(attacked.getNom() + " ne reçoit pas de degats.");
-			}else {
-				if(criticalHit(attacker)==true) 
-				{
-					int pvOfAttacked = attacked.getPv();
-					pvOfAttacked = pvOfAttacked - attacker.getAtt();
-					attacked.setPv(pvOfAttacked);
-					System.out.println("pv new value "+attacked.getPv());
-					data.add("Coup critique! " + attacker.getNom() + "inflige des degats perçants à " + attacked.getNom() +" d'une valeur de " + attacker.getAtt()+"." );
-					//add or remove in/from to heal  team table
-					if(attacked.getPv() > 0) {
-						int i;
-						if(toHeal.size()==0) {
-							toHeal.add(attacked);
-						}else {
-							for(i=0; i<toHeal.size() && toHeal.get(i) != attacked;i++) {}
-							if (i>=toHeal.size()) {	toHeal.add(attacked);}
-						}
-					}
-				}else{
-					int pvOfAttacked = attacked.getPv();
-					if(attacked.getDef() < attacker.getAtt()) 
-					{
-						int damage = attacker.getAtt() - attacked.getDef();
-						pvOfAttacked = pvOfAttacked-damage;
-						attacked.setPv(pvOfAttacked);
-						System.out.println("pv new value "+attacked.getPv());
-						data.add(attacker.getNom()+" attaque avec "+attacker.getAtt()+" pt dattaque, "+attacked.getNom()+" qui a "+attacked.getDef()+" defense et "+attacked.getPv()+" pv : il reçoit donc "+damage+" degat.");
-						/*try {
-							if(!(toHeal.containsKey(attacked.getNom())) ) {	toHeal.put(attacked.getNom(), attacked);}
-						}catch (Exception e) {toHeal.put(attacked.getNom(), attacked);}*/
-						//add or remove in/from to heal  team table
-						if(attacked.getPv() > 0) {
-							int i;
-							if(toHeal.size()==0) {
-								toHeal.add(attacked);
-							}else {
-								for(i=0; i<toHeal.size() && toHeal.get(i) != attacked;i++) {}
-								if (i>=toHeal.size()) {	toHeal.add(attacked);}
-							}
-						}
-					}else{
-						data.add(attacked.getNom() + " ne reçoit pas de degats.");
-					}
-				}
-			}
-			
-		}else if(attacked.getType() == "Voleur") {
-			if(esquive(attacked) == true)
-			{
-				data.add(attacked.getNom() + " ne reçoit pas de degats.");
-			}else {
-				if(criticalHit(attacker)==true) 
-				{
-					int pvOfAttacked = attacked.getPv();
-					pvOfAttacked = pvOfAttacked - attacker.getAtt();
-					attacked.setPv(pvOfAttacked);
-					System.out.println("pv new value "+attacked.getPv());
-					data.add("Coup critique! " + attacker.getNom() + "inflige des degats perçants à " + attacked.getNom() +" d'une valeur de " + attacker.getAtt()+"." );
-					//add or remove in/from to heal  team table
-					if(attacked.getPv() > 0) {
-						int i;
-						if(toHeal.size()==0) {
-							toHeal.add(attacked);
-						}else {
-							for(i=0; i<toHeal.size() && toHeal.get(i) != attacked;i++) {}
-							if (i>=toHeal.size()) {	toHeal.add(attacked);}
-						}
-					}
-				}else{
-					int pvOfAttacked = attacked.getPv();
-					if(attacked.getDef() < attacker.getAtt()) 
-					{
-						int damage = attacker.getAtt() - attacked.getDef();
-						pvOfAttacked = pvOfAttacked-damage;
-						attacked.setPv(pvOfAttacked);
-						// change le msg pour qu'il soit plus parlant
-						data.add(attacker.getNom()+" attaque avec "+attacker.getAtt()+" pt dattaque, "+attacked.getNom()+" qui a "+attacked.getDef()+" defense et "+attacked.getPv()+" : il reçoit donc "+damage+" degat.");
-						System.out.println("pv new value "+attacked.getPv());
-						/*try {
-							if(!(toHeal.containsKey(attacked.getNom())) ) {	toHeal.put(attacked.getNom(), attacked);}
-						}catch (Exception e) {toHeal.put(attacked.getNom(), attacked);}*/
-						
-						//add or remove in/from to heal  team table
-						if(attacked.getPv() > 0) {
-							int i;
-							if(toHeal.size()==0) {
-								toHeal.add(attacked);
-							}else {
-								for(i=0; i<toHeal.size() && toHeal.get(i) != attacked;i++) {}
-								if (i>=toHeal.size()) {	toHeal.add(attacked);}
-							}
-						}
-					}else{
-						data.add(attacked.getNom() + " ne reçoit pas de degats.");
-					}
-				}
-			}			
-		}else if(attacked.getType() == "Mage") {
-			if(criticalHit(attacker)==true) 
-			{
-				int pvOfAttacked = attacked.getPv();
-				pvOfAttacked = pvOfAttacked - attacker.getAtt();
-				attacked.setPv(pvOfAttacked);
-				System.out.println("pv new value "+attacked.getPv());
-				data.add("Coup critique! " + attacker.getNom() + "inflige des degats perçants à " + attacked.getNom() +" d'une valeur de " + attacker.getAtt()+"." );
-				//add or remove in/from to heal  team table
-				if(attacked.getPv() > 0) {
-					int i;
-					if(toHeal.size()==0) {
-						toHeal.add(attacked);
-					}else {
-						for(i=0; i<toHeal.size() && toHeal.get(i) != attacked;i++) {}
-						if (i>=toHeal.size()) {	toHeal.add(attacked);}
-					}
-				}
-			}else{
-				int pvOfAttacked = attacked.getPv();
-				if(attacked.getDef() < attacker.getAtt()) 
-				{
-					int damage = attacker.getAtt() - attacked.getDef();
-					pvOfAttacked = pvOfAttacked-damage;
-					attacked.setPv(pvOfAttacked);
-					// change le msg pour qu'il soit plus parlant
-					data.add(attacker.getNom()+" attaque avec "+attacker.getAtt()+" pt dattaque, "+attacked.getNom()+" qui a "+attacked.getDef()+" defense et "+attacked.getPv()+" : il reçoit donc "+damage+" degat.");
-					System.out.println("pv new value "+attacked.getPv());
-					/*try {
-						if(!(toHeal.containsKey(attacked.getNom())) ) {	toHeal.put(attacked.getNom(), attacked);}
-					}catch (Exception e) {toHeal.put(attacked.getNom(), attacked);}*/
-					//add or remove in/from to heal  team table
-					if(attacked.getPv() > 0) {
-						int i;
-						if(toHeal.size()==0) {
-							toHeal.add(attacked);
-						}else {
-							for(i=0; i<toHeal.size() && toHeal.get(i) != attacked;i++) {}
-							if (i>=toHeal.size()) {	toHeal.add(attacked);}
-						}
-					}
-				}else{
-					data.add(attacked.getNom() + " ne reçoit pas de degats.");
-				}
-			}
-		}else{
-			System.out.println("error in champion type");
-		}
-	}
-	public void heal(Champion healer, ArrayList<Champion> ToHeal) {
-		ArrayList<String> indexToHeal = new ArrayList<>();
-		for (int i=0; i<ToHeal.size(); i++) {	if(ToHeal.get(i).getPv() > 0) {	indexToHeal.add(String.valueOf(i));	System.out.println("in :" +i);} }
-		
-		if (indexToHeal.size()>0) {
-			Collections.shuffle(indexToHeal);
-			ToHeal.get(Integer.parseInt(indexToHeal.get(0))).setPv(ToHeal.get(Integer.parseInt(indexToHeal.get(0))).getPv() + healer.getHeal());
-			data.add(healer.getNom() + " ajoute " + healer.getHeal() + " pv à " + ToHeal.get(Integer.parseInt(indexToHeal.get(0))).getPv() + " pv de "
-					+ ToHeal.get(Integer.parseInt(indexToHeal.get(0))).getNom() + " -> new pv value : " + ToHeal.get(Integer.parseInt(indexToHeal.get(0))).getPv());
-		}
-	}
-	public boolean criticalHit(Champion tryHarder) {
-		int percentToTest = tryHarder.getCrit();
-		for(int i=0; i<100; i++) {
-			if(i<percentToTest){
-				percent.add(true);
-			}else {
-				percent.add(false);
-			}
-		}
-		Collections.shuffle(percent);
-		Random intgenerator = new Random();
-		int toTest = intgenerator.nextInt(100);
-		Boolean toReturn = percent.get(toTest);
-		return toReturn;
-	}
-	public Boolean parade(Champion theTank) {
-		int percentToTest = theTank.getParade();
-		for(int i=0; i<100; i++) {
-			if(i<percentToTest){
-				percent.add(true);
-			}else {
-				percent.add(false);
-			}
-		}
-		Collections.shuffle(percent);
-		Random intgenerator = new Random();
-		int toTest = intgenerator.nextInt(100);
-		Boolean toReturn = percent.get(toTest);
-		return toReturn;
-	}
-	public Boolean esquive(Champion speedy) {
-		int percentToTest = speedy.getEsquive();
-		for(int i=0; i<100; i++) {
-			if(i<percentToTest){
-				percent.add(true);
-			}else {
-				percent.add(false);
-			}
-		}
-		Collections.shuffle(percent);
-		Random intgenerator = new Random();
-		int toTest = intgenerator.nextInt(100);
-		Boolean toReturn = percent.get(toTest);
-		return toReturn;
-	}
-	public void close() {
-		try {
-			System.out.println("start to stop");
-			if(teamATimers != null && teamATimers.size() > 0 && teamBTimers != null && teamBTimers.size() > 0) {
-				for(int i =0; i<teamATimers.size(); i++) {
-					teamATimers.get(i).shutdown();
-					teamATimers.get(i).awaitTermination(33, TimeUnit.MILLISECONDS);
-				}
-				for(int i =0; i<teamBTimers.size(); i++) {
-					teamBTimers.get(i).shutdown();
-					teamBTimers.get(i).awaitTermination(33, TimeUnit.MILLISECONDS);
-				}
-				timer1.shutdown();
-				timer1.awaitTermination(1, TimeUnit.SECONDS);
-				
-			}
-			System.out.println("stop");
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	@FXML
-	public void fight() {
-		
 	}
 	@FXML
 	public void quitter() {
@@ -1182,24 +1176,38 @@ public class BattleRoyaleController {
 	}
 	@FXML
 	public void equipeA() {
+		//System.out.println(javafx.scene.text.Font.getFamilies());
 		HBox.getChildren().clear();
 		VBox left = new VBox();
 		VBox right = new VBox();
+		list1 = new ListView<>();
 		ObservableList<String> data1 = FXCollections.observableArrayList();
+		data1.clear();
 		list1.setItems(data1);
 		list1.setPrefWidth(425);
 		list1.autosize();
 		for(int i=0; i<teamA.size(); i++) {
 			data1.add(teamA.get(i).getNom());
 		}
+		Label leftLabel = new Label("liste des champions!");
+		leftLabel.setTextAlignment(TextAlignment.CENTER);
+		leftLabel.setFont(new Font("Blackadder ITC", 24));
+		left.getChildren().add(leftLabel);
 		left.getChildren().add(list1);
+		left.setAlignment(Pos.CENTER);
 		
+		list2 = new ListView<>();
 		ObservableList<String> data2 = FXCollections.observableArrayList();
 		list2.setItems(data2);
 		list2.autosize();
 		list2.setPrefWidth(425);
-		data2.add("select a champion!");
+		data2.add("selectionnez a champion!");
+		Label rightLabel = new Label("caracteristique du champion!");
+		rightLabel.setTextAlignment(TextAlignment.CENTER);
+		rightLabel.setFont(new Font("Blackadder ITC", 24));
+		right.getChildren().add(rightLabel);
 		right.getChildren().add(list2);
+		right.setAlignment(Pos.CENTER);
 		
 		HBox.getChildren().add(left);
 		HBox.getChildren().add(right);
@@ -1232,7 +1240,71 @@ public class BattleRoyaleController {
 	}
 	@FXML
 	public void equipeB() {
+		HBox.getChildren().clear();
+		VBox left = new VBox();
+		VBox right = new VBox();
+		list1 = new ListView<>();
+		ObservableList<String> data3 = FXCollections.observableArrayList();
+		list1.setItems(data3);
+		list1.setPrefWidth(425);
+		list1.autosize();
+		for(int i=0; i<teamB.size(); i++) {
+			data3.add(teamB.get(i).getNom());
+		}
+		Label leftLabel = new Label("liste des champions!");
+		leftLabel.setTextAlignment(TextAlignment.CENTER);
+		leftLabel.setFont(new Font("Blackadder ITC", 24));
+		left.getChildren().add(leftLabel);
+		left.getChildren().add(list1);
+		left.setAlignment(Pos.CENTER);
 		
+		list2=new ListView<>();
+		ObservableList<String> data4 = FXCollections.observableArrayList();
+		data4.clear();
+		list2.setItems(data4);
+		list2.autosize();
+		list2.setPrefWidth(425);
+		data4.add("selectionnez un champion!");
+		Label rightLabel = new Label("caracteristique du champion!");
+		rightLabel.setTextAlignment(TextAlignment.CENTER);
+		rightLabel.setFont(new Font("Blackadder ITC", 24));
+		right.getChildren().add(rightLabel);
+		right.getChildren().add(list2);
+		right.setAlignment(Pos.CENTER);
+		
+		HBox.getChildren().add(left);
+		HBox.getChildren().add(right);
+		list1.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
+			@Override
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				Integer champselect = null;
+				for(int i=0; i<teamB.size() && champselect == null ;i++) {
+					if(newValue == teamB.get(i).getNom()) {
+						champselect = i;
+					}
+				}
+				data4.clear();
+				try {
+					data4.add("name : "+ teamB.get(champselect).getNom());
+				} catch (Exception e) {
+					e.printStackTrace();
+					System.out.println((champselect));					
+				}
+				data4.add("Attaque : "+ teamB.get(champselect).getAtt());
+				data4.add("defense : "+ teamB.get(champselect).getDef());
+				data4.add("Points de vie : "+ teamB.get(champselect).getPv());
+				data4.add("Pourcentage de coup critique : "+ teamB.get(champselect).getCrit() +"%");
+				data4.add("initiative : "+ teamB.get(champselect).getInitiative());
+				if(teamB.get(champselect).getType() == "Guerrier") {
+					data4.add("Pourcentage de parade : "+ teamB.get(champselect).getParade()+"%");
+				}else if(teamB.get(champselect).getType() == "Voleur"){
+					data4.add("Pourcentage d'esquive : "+ teamB.get(champselect).getEsquive()+"%");
+				}else if(teamB.get(champselect).getType() == "Prêtre") {
+					data4.add("montant de soin : "+ teamB.get(champselect).getHeal());
+					data4.add("Pourcentage de parade : "+ teamB.get(champselect).getParade()+"%");
+				}
+			}
+		});
 	}
 	@FXML
 	public void Historique() {
