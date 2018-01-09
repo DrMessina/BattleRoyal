@@ -1,5 +1,6 @@
 package application;
 
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
@@ -7,11 +8,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.sun.media.jfxmediaimpl.platform.Platform;
+
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.Labeled;
@@ -25,12 +29,13 @@ public class BattleRoyaleController {
 	@FXML
 	private HBox HBox;
 	@FXML
-	private Label afficheur;
-	@FXML
 	private ListView<String> list = new ListView<>();
 	private ListView<String> list1 = new ListView<>();
 	private ListView<String> list2 = new ListView<>();
+	private ListView<String> list3 = new ListView<>();
 
+
+	private ArrayList<Historique> historique = new ArrayList<>();
 	private ObservableList<String> data = FXCollections.observableArrayList();
 	private ArrayList<Champion> teamA = new ArrayList<>();
 	//Hashtable<String, Champion> teamAToHeal = new Hashtable<>();
@@ -42,12 +47,36 @@ public class BattleRoyaleController {
 	private ArrayList<ScheduledExecutorService> teamATimers = new ArrayList<>();
 	private ArrayList<ScheduledExecutorService> teamBTimers = new ArrayList<>();
 	private ScheduledExecutorService timer1;
+	private Connection connection = null;
+	private int teamAId;
+	private int teamBId;
+	private int combatId;
 	
 	public void init() {
-		
-		
-		
+		connection = connecter("battleroyale", "root", "Root");
+		fight();
+		Runnable historiqueLoad =new Runnable() {
+			@Override
+			public void run() {
+				try {
+					String sql = "select * from historique";
+					Statement st;
+					st = connection.createStatement();
+					ResultSet rs = st.executeQuery(sql);
+					while(rs.next()) {
+						System.out.println(rs.getInt("WinnerSurvivor")+" "+ rs.getInt("LooserSurvivor")+" "+ rs.getInt("CombatId")+rs.getString("Winner")+rs.getString("Looser"));
+						Historique h = new Historique(rs.getString("Winner"), rs.getString("Looser"), rs.getInt("WinnerSurvivor"), rs.getInt("LooserSurvivor"));
+						BattleRoyaleController.this.historique.add(h);
+					}
+
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		};
+		historiqueLoad.run();
 	}
+	//cree sql pour combat dans fight
 	public void createTeam(	ArrayList<Champion> team) {
 		ArrayList<String> t= new ArrayList<>();
 		t.add("Guerrier");
@@ -56,36 +85,44 @@ public class BattleRoyaleController {
 		t.add("Prêtre");
 		for(int i=0; i<10;i++) {
 			Collections.shuffle(t);
-			if(t.get(0)=="Guerrier") {
-				Guerrier g = new Guerrier("Guerrier"+i);
-				Champion c = new Champion(g);
-				team.add(c);
-				
-			}else if(t.get(0)=="Voleur") {
-				Voleur v = new Voleur("voleur"+i);
-				Champion c = new Champion(v);
-				team.add(c);
-				
-			}else if(t.get(0)=="Mage") {
-				Mage m = new Mage("Mage"+i);
-				Champion c = new Champion(m);
-				team.add(c);
-				
-			}else if(t.get(0)=="Prêtre") {
-				Prêtre p = new Prêtre("Prêtre"+i);
-				Champion c = new Champion(p);
-				team.add(c);
-				
-			}else {
-				System.out.println("erreur de creation de champion!");
-			}
-			
+				if(t.get(0)=="Guerrier") {
+					Guerrier g = new Guerrier("Guerrier"+i);
+					Champion c = new Champion(g);
+					team.add(c);
+					
+				}else if(t.get(0)=="Voleur") {
+					Voleur v = new Voleur("voleur"+i);
+					Champion c = new Champion(v);
+					team.add(c);
+					
+				}else if(t.get(0)=="Mage") {
+					Mage m = new Mage("Mage"+i);
+					Champion c = new Champion(m);
+					team.add(c);
+					
+				}else if(t.get(0)=="Prêtre") {
+					Prêtre p = new Prêtre("Prêtre"+i);
+					Champion c = new Champion(p);
+					team.add(c);
+					
+				}else {
+					System.out.println("erreur de creation de champion!");
+				}
 		}
 	}
 	public void setListViewWidth(Number newSceneWidth) {
-		list.setPrefWidth(newSceneWidth.intValue());
-		list1.setPrefWidth(newSceneWidth.intValue()/2);
-		list2.setPrefWidth(newSceneWidth.intValue()/2);
+		if (list != null) {
+			list.setPrefWidth(newSceneWidth.intValue());
+		}
+		if (list3 != null) {
+			list3.setPrefWidth(newSceneWidth.intValue());
+		}
+		if (list1 != null) {
+			list1.setPrefWidth(newSceneWidth.intValue() / 2);
+		}
+		if (list2 != null) {
+			list2.setPrefWidth(newSceneWidth.intValue() / 2);
+		}
 	}
 	public int getRandomInt(int max) {
 		Random intgenerator = new Random();
@@ -330,7 +367,6 @@ public class BattleRoyaleController {
 			e.printStackTrace();
 		}
 	}
-	
 	@FXML
 	public void fight() {
 		close();
@@ -355,14 +391,57 @@ public class BattleRoyaleController {
 		teamBTimers.clear();
 		teamBTimers = new ArrayList<>();
 		Random intgenerator = new Random();
+		 teamAId=0;
+		 teamBId=0;
+		 combatId=0;
+		/**
+		 * enregistrement du combat
+		 */
+		try {
+			String sql1 = "insert into combat values("+ 0 +")";
+			Statement st1 = connection.createStatement();
+			st1.executeUpdate(sql1);
+			String sql = "select Max(CombatId) from combat";
+			Statement st = connection.createStatement();
+			ResultSet rs = st.executeQuery(sql);
+			if (rs.next()) {
+				combatId = rs.getInt("Max(CombatId)");
+			}
+		} catch (SQLException e1) {	e1.printStackTrace();	}
 		/**	
 		 * create first team
 		 */
-		createTeam(teamA);
-		/**
+		try {
+			String sql = "select Max(TeamId) from equipe";
+			Statement st = connection.createStatement();
+			ResultSet rs = st.executeQuery(sql);
+			if (rs.next()) {
+				teamAId = rs.getInt("Max(TeamId)") + 1;
+				createTeam(teamA);
+				String sql1 = "insert into equipe values(0,'teamA"+teamAId+"',"+ combatId +")";
+				Statement st1 = connection.createStatement();
+				st1.executeUpdate(sql1);
+			}			
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+		}		/**
 		 * create second team
 		 */
-		createTeam(teamB);
+		try {
+			String sql = "select Max(TeamId) from equipe";
+			Statement st = connection.createStatement();
+			ResultSet rs = st.executeQuery(sql);
+			if (rs.next()) {
+				teamBId = rs.getInt("Max(TeamId)") + 1;
+				createTeam(teamB);
+				String sql1 = "insert into equipe values(0,'teamB"+teamBId+"',"+ combatId +")";
+				Statement st1 = connection.createStatement();
+				st1.executeUpdate(sql1);
+			}			
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+		}	
+		
 		/**
 		 * creation des threads
 		 */
@@ -1144,22 +1223,55 @@ public class BattleRoyaleController {
 				}
 				if(teamAOut == 10 || teamBOut == 10) {
 					try {
+						String winnerId = new String();
+						String looserId = new String();
+						int winnerAlive=0;
+						int looseralive=0;
 						//stop all thread teamA
 						for(int i =0; i<teamATimers.size(); i++) {
 							teamATimers.get(i).shutdown();
-							
 							teamATimers.get(i).awaitTermination(33, TimeUnit.MILLISECONDS);
+							Champion c = teamA.get(i);
+							String sql = "insert into champion values(0,'"+ c.getNom()+"','"+c.getType()+"',"+c.getAtt()+","+c.getDef()+","+c.getPv()+","+c.getParade()+","+c.getEsquive()+","+c.getCrit()+","+c.getHeal()+","+ teamAId +")";
+							Statement st = connection.createStatement();
+							st.executeUpdate(sql);
 						}
 						//stop all thread teamB
 						for(int i =0; i<teamBTimers.size(); i++) {
 							teamBTimers.get(i).shutdown();
 							teamBTimers.get(i).awaitTermination(33, TimeUnit.MILLISECONDS);
+							Champion c = teamB.get(i);
+							String sql = "insert into champion values(0,'"+ c.getNom()+"','"+c.getType()+"',"+c.getAtt()+","+c.getDef()+","+c.getPv()+","+c.getParade()+","+c.getEsquive()+","+c.getCrit()+","+c.getHeal()+","+ teamBId+")";
+							Statement st = connection.createStatement();
+							st.executeUpdate(sql);
 						}
+						
+						if(teamAOut ==10) {
+							winnerAlive = 10-teamBOut;
+							looseralive = 10-teamAOut;
+							winnerId = "TeamB"+teamBId;
+							looserId = "TeamA"+teamAId;
+						}else{
+							winnerAlive = 10-teamAOut;
+							looseralive = 10-teamBOut;
+							winnerId = "TeamA"+teamAId;
+							looserId = "TeamB"+teamBId;
+						}
+						int combatId=0;
+						String sql = "select Max(CombatId) from combat";
+						Statement st = connection.createStatement();
+						ResultSet rs = st.executeQuery(sql);
+						if (rs.next()) {	combatId = rs.getInt("Max(CombatId)");	}			
+						Historique result= new Historique(winnerId, looserId, winnerAlive, looseralive);
+						String sql1 ="insert into historique values("+ winnerAlive +","+ looseralive +","+ combatId +",'"+winnerId+"','"+looserId+"')";
+						Statement st1 = connection.createStatement();
+						st1.executeUpdate(sql1);
+						historique.add(result);
 						timer1.shutdown();
 						timer1.awaitTermination(1, TimeUnit.SECONDS);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
+						System.out.println("end");
+					} catch (InterruptedException e) {	e.printStackTrace();	}
+					  catch (SQLException e) {	e.printStackTrace();	}
 				}
 
 				
@@ -1176,138 +1288,180 @@ public class BattleRoyaleController {
 	}
 	@FXML
 	public void equipeA() {
-		//System.out.println(javafx.scene.text.Font.getFamilies());
-		HBox.getChildren().clear();
-		VBox left = new VBox();
-		VBox right = new VBox();
-		list1 = new ListView<>();
-		ObservableList<String> data1 = FXCollections.observableArrayList();
-		data1.clear();
-		list1.setItems(data1);
-		list1.setPrefWidth(425);
-		list1.autosize();
-		for(int i=0; i<teamA.size(); i++) {
-			data1.add(teamA.get(i).getNom());
-		}
-		Label leftLabel = new Label("liste des champions!");
-		leftLabel.setTextAlignment(TextAlignment.CENTER);
-		leftLabel.setFont(new Font("Blackadder ITC", 24));
-		left.getChildren().add(leftLabel);
-		left.getChildren().add(list1);
-		left.setAlignment(Pos.CENTER);
-		
-		list2 = new ListView<>();
-		ObservableList<String> data2 = FXCollections.observableArrayList();
-		list2.setItems(data2);
-		list2.autosize();
-		list2.setPrefWidth(425);
-		data2.add("selectionnez a champion!");
-		Label rightLabel = new Label("caracteristique du champion!");
-		rightLabel.setTextAlignment(TextAlignment.CENTER);
-		rightLabel.setFont(new Font("Blackadder ITC", 24));
-		right.getChildren().add(rightLabel);
-		right.getChildren().add(list2);
-		right.setAlignment(Pos.CENTER);
-		
-		HBox.getChildren().add(left);
-		HBox.getChildren().add(right);
-		list1.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
-			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-				Integer champselect = null;
-				for(int i=0; i<teamA.size() && champselect == null ;i++) {
-					if(newValue == teamA.get(i).getNom()) {
-						champselect = i;
+		if (teamA.size()>0) {
+			//System.out.println(javafx.scene.text.Font.getFamilies());
+			HBox.getChildren().clear();
+			VBox left = new VBox();
+			VBox right = new VBox();
+			list1 = new ListView<>();
+			ObservableList<String> data1 = FXCollections.observableArrayList();
+			data1.clear();
+			list1.setItems(data1);
+			list1.setPrefWidth(425);
+			list1.autosize();
+			for (int i = 0; i < teamA.size(); i++) {
+				data1.add(teamA.get(i).getNom());
+			}
+			Label leftLabel = new Label("liste des champions!");
+			leftLabel.setTextAlignment(TextAlignment.CENTER);
+			leftLabel.setFont(new Font("Blackadder ITC", 24));
+			left.getChildren().add(leftLabel);
+			left.getChildren().add(list1);
+			left.setAlignment(Pos.CENTER);
+			list2 = new ListView<>();
+			ObservableList<String> data2 = FXCollections.observableArrayList();
+			list2.setItems(data2);
+			list2.autosize();
+			list2.setPrefWidth(425);
+			data2.add("selectionnez a champion!");
+			Label rightLabel = new Label("caracteristique du champion!");
+			rightLabel.setTextAlignment(TextAlignment.CENTER);
+			rightLabel.setFont(new Font("Blackadder ITC", 24));
+			right.getChildren().add(rightLabel);
+			right.getChildren().add(list2);
+			right.setAlignment(Pos.CENTER);
+			HBox.getChildren().add(left);
+			HBox.getChildren().add(right);
+			list1.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
+				@Override
+				public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+					Integer champselect = null;
+					for (int i = 0; i < teamA.size() && champselect == null; i++) {
+						if (newValue == teamA.get(i).getNom()) {
+							champselect = i;
+						}
+					}
+					data2.clear();
+					data2.add("name : " + teamA.get(champselect).getNom());
+					data2.add("Attaque : " + teamA.get(champselect).getAtt());
+					data2.add("defense : " + teamA.get(champselect).getDef());
+					data2.add("Points de vie : " + teamA.get(champselect).getPv());
+					data2.add("Pourcentage de coup critique : " + teamA.get(champselect).getCrit() + "%");
+					data2.add("initiative : " + teamA.get(champselect).getInitiative());
+					if (teamA.get(champselect).getType() == "Guerrier") {
+						data2.add("Pourcentage de parade : " + teamA.get(champselect).getParade() + "%");
+					} else if (teamA.get(champselect).getType() == "Voleur") {
+						data2.add("Pourcentage d'esquive : " + teamA.get(champselect).getEsquive() + "%");
+					} else if (teamA.get(champselect).getType() == "Prêtre") {
+						data2.add("montant de soin : " + teamA.get(champselect).getHeal());
+						data2.add("Pourcentage de parade : " + teamA.get(champselect).getParade() + "%");
 					}
 				}
-				data2.clear();
-				data2.add("name : "+ teamA.get(champselect).getNom());
-				data2.add("Attaque : "+ teamA.get(champselect).getAtt());
-				data2.add("defense : "+ teamA.get(champselect).getDef());
-				data2.add("Points de vie : "+ teamA.get(champselect).getPv());
-				data2.add("Pourcentage de coup critique : "+ teamA.get(champselect).getCrit() +"%");
-				data2.add("initiative : "+ teamA.get(champselect).getInitiative());
-				if(teamA.get(champselect).getType() == "Guerrier") {
-					data2.add("Pourcentage de parade : "+ teamA.get(champselect).getParade()+"%");
-				}else if(teamA.get(champselect).getType() == "Voleur"){
-					data2.add("Pourcentage d'esquive : "+ teamA.get(champselect).getEsquive()+"%");
-				}else if(teamA.get(champselect).getType() == "Prêtre") {
-					data2.add("montant de soin : "+ teamA.get(champselect).getHeal());
-					data2.add("Pourcentage de parade : "+ teamA.get(champselect).getParade()+"%");
-				}
-			}
-		});
+			});
+		}
 	}
 	@FXML
 	public void equipeB() {
-		HBox.getChildren().clear();
-		VBox left = new VBox();
-		VBox right = new VBox();
-		list1 = new ListView<>();
-		ObservableList<String> data3 = FXCollections.observableArrayList();
-		list1.setItems(data3);
-		list1.setPrefWidth(425);
-		list1.autosize();
-		for(int i=0; i<teamB.size(); i++) {
-			data3.add(teamB.get(i).getNom());
-		}
-		Label leftLabel = new Label("liste des champions!");
-		leftLabel.setTextAlignment(TextAlignment.CENTER);
-		leftLabel.setFont(new Font("Blackadder ITC", 24));
-		left.getChildren().add(leftLabel);
-		left.getChildren().add(list1);
-		left.setAlignment(Pos.CENTER);
-		
-		list2=new ListView<>();
-		ObservableList<String> data4 = FXCollections.observableArrayList();
-		data4.clear();
-		list2.setItems(data4);
-		list2.autosize();
-		list2.setPrefWidth(425);
-		data4.add("selectionnez un champion!");
-		Label rightLabel = new Label("caracteristique du champion!");
-		rightLabel.setTextAlignment(TextAlignment.CENTER);
-		rightLabel.setFont(new Font("Blackadder ITC", 24));
-		right.getChildren().add(rightLabel);
-		right.getChildren().add(list2);
-		right.setAlignment(Pos.CENTER);
-		
-		HBox.getChildren().add(left);
-		HBox.getChildren().add(right);
-		list1.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
-			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-				Integer champselect = null;
-				for(int i=0; i<teamB.size() && champselect == null ;i++) {
-					if(newValue == teamB.get(i).getNom()) {
-						champselect = i;
+		if (teamB.size()>0) {
+			HBox.getChildren().clear();
+			VBox left = new VBox();
+			VBox right = new VBox();
+			list1 = new ListView<>();
+			ObservableList<String> data3 = FXCollections.observableArrayList();
+			list1.setItems(data3);
+			list1.setPrefWidth(425);
+			list1.autosize();
+			for (int i = 0; i < teamB.size(); i++) {
+				data3.add(teamB.get(i).getNom());
+			}
+			Label leftLabel = new Label("liste des champions!");
+			leftLabel.setTextAlignment(TextAlignment.CENTER);
+			leftLabel.setFont(new Font("Blackadder ITC", 24));
+			left.getChildren().add(leftLabel);
+			left.getChildren().add(list1);
+			left.setAlignment(Pos.CENTER);
+			list2 = new ListView<>();
+			ObservableList<String> data4 = FXCollections.observableArrayList();
+			data4.clear();
+			list2.setItems(data4);
+			list2.autosize();
+			list2.setPrefWidth(425);
+			data4.add("selectionnez un champion!");
+			Label rightLabel = new Label("caracteristique du champion!");
+			rightLabel.setTextAlignment(TextAlignment.CENTER);
+			rightLabel.setFont(new Font("Blackadder ITC", 24));
+			right.getChildren().add(rightLabel);
+			right.getChildren().add(list2);
+			right.setAlignment(Pos.CENTER);
+			HBox.getChildren().add(left);
+			HBox.getChildren().add(right);
+			list1.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
+				@Override
+				public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+					Integer champselect = null;
+					for (int i = 0; i < teamB.size() && champselect == null; i++) {
+						if (newValue == teamB.get(i).getNom()) {
+							champselect = i;
+						}
+					}
+					data4.clear();
+					try {
+						data4.add("name : " + teamB.get(champselect).getNom());
+					} catch (Exception e) {
+						e.printStackTrace();
+						System.out.println((champselect));
+					}
+					data4.add("Attaque : " + teamB.get(champselect).getAtt());
+					data4.add("defense : " + teamB.get(champselect).getDef());
+					data4.add("Points de vie : " + teamB.get(champselect).getPv());
+					data4.add("Pourcentage de coup critique : " + teamB.get(champselect).getCrit() + "%");
+					data4.add("initiative : " + teamB.get(champselect).getInitiative());
+					if (teamB.get(champselect).getType() == "Guerrier") {
+						data4.add("Pourcentage de parade : " + teamB.get(champselect).getParade() + "%");
+					} else if (teamB.get(champselect).getType() == "Voleur") {
+						data4.add("Pourcentage d'esquive : " + teamB.get(champselect).getEsquive() + "%");
+					} else if (teamB.get(champselect).getType() == "Prêtre") {
+						data4.add("montant de soin : " + teamB.get(champselect).getHeal());
+						data4.add("Pourcentage de parade : " + teamB.get(champselect).getParade() + "%");
 					}
 				}
-				data4.clear();
-				try {
-					data4.add("name : "+ teamB.get(champselect).getNom());
-				} catch (Exception e) {
-					e.printStackTrace();
-					System.out.println((champselect));					
-				}
-				data4.add("Attaque : "+ teamB.get(champselect).getAtt());
-				data4.add("defense : "+ teamB.get(champselect).getDef());
-				data4.add("Points de vie : "+ teamB.get(champselect).getPv());
-				data4.add("Pourcentage de coup critique : "+ teamB.get(champselect).getCrit() +"%");
-				data4.add("initiative : "+ teamB.get(champselect).getInitiative());
-				if(teamB.get(champselect).getType() == "Guerrier") {
-					data4.add("Pourcentage de parade : "+ teamB.get(champselect).getParade()+"%");
-				}else if(teamB.get(champselect).getType() == "Voleur"){
-					data4.add("Pourcentage d'esquive : "+ teamB.get(champselect).getEsquive()+"%");
-				}else if(teamB.get(champselect).getType() == "Prêtre") {
-					data4.add("montant de soin : "+ teamB.get(champselect).getHeal());
-					data4.add("Pourcentage de parade : "+ teamB.get(champselect).getParade()+"%");
-				}
-			}
-		});
+			});
+		}
 	}
 	@FXML
-	public void Historique() {
+	public void historique() {
+		if (historique.size()>0) {
+			HBox.getChildren().clear();
+			VBox vbox = new VBox();
+			Label label = new Label("Historique des combats!");
+			label.setTextAlignment(TextAlignment.CENTER);
+			label.setFont(new Font("Blackadder ITC", 30));
+			vbox.getChildren().addAll(label);
+			vbox.setAlignment(Pos.TOP_CENTER);
+			vbox.setPadding(new Insets(0, 0, 20, 0));
+			vbox.setSpacing(10);
+			HBox.getChildren().add(vbox);
+			HBox.setAlignment(Pos.TOP_CENTER);
+			if (historique.size() <= 0) {
+				return;
+			} else {
+				for (int i = 0; i < historique.size(); i++) {
+					Label lab = new Label(historique.get(i).getWinnerId() + " \t " + historique.get(i).getWinnerAlive()
+							+ " : " + historique.get(i).getLooserAlive() + " \t " + historique.get(i).getLooserId());
+					lab.setTextAlignment(TextAlignment.CENTER);
+					vbox.getChildren().add(lab);
+				}
+			} 
+		}
 		
+	}
+	@FXML
+	public void fightEncours(){
+		HBox.getChildren().clear();
+		list = new ListView<>();
+		list.setItems(data);
+		list.setPrefWidth(850);
+		list.setMaxWidth(1366);
+		HBox.getChildren().add(list);
+	}
+	public Connection connecter(String bd, String user, String pass) {
+		Connection connexion = null;
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			connexion = DriverManager.getConnection("jdbc:mysql://localhost:3306/"+bd+"?useSSL=false",user,pass);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return connexion;
 	}
 }

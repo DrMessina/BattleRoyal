@@ -16,6 +16,7 @@
 	<top>
 		<MenuBar >
 			<Menu text="Combat"><items>
+				<MenuItem text="combaten cours" onAction="#fightEncours"></MenuItem>
 				<MenuItem text="nouveau combat" onAction="#fight"></MenuItem>
 				<MenuItem text="Quitter" onAction="#quitter"></MenuItem>
 			</items></Menu>	
@@ -23,7 +24,9 @@
 				<MenuItem text="equipe A" onAction="#equipeA"></MenuItem>
 				<MenuItem text="equipe B" onAction="#equipeB"></MenuItem>
 			</items></Menu>				
-			<Menu text="Historique" onAction="#Historique"></Menu>		
+			<Menu text="Historique" ><items>
+				<MenuItem text="voir l'historique" onAction="#historique"></MenuItem>
+			</items></Menu>		
 		</MenuBar>
 	</top>
 	<center >

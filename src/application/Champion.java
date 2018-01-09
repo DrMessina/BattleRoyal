@@ -164,7 +164,10 @@ public class Champion {
 		}
 	}
 	public int getHeal() {
-		return prêtre.getHeal();
+		if (prêtre != null) {
+			return prêtre.getHeal();
+		}
+		return 0;
 	}
 	public void setHeal(int heal) {
 		prêtre.setHeal(heal);
